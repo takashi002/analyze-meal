@@ -59,3 +59,12 @@ export function deleteMealRecord(id: string): void {
   const updatedData = existingData.filter((meal) => meal.id !== id)
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedData))
 }
+
+export function clearAllMealData(): void {
+  if (typeof window === "undefined") return
+  localStorage.removeItem(STORAGE_KEY)
+}
+
+export function getMealById(id: string): MealRecord | undefined {
+  return getMealData().find((meal) => meal.id === id)
+}

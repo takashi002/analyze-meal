@@ -1,14 +1,13 @@
 "use client"
 
-import React from "react"
-
-import { useState, useRef } from "react"
+import type React from "react"
+import { useState, useRef, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Upload, Camera, Loader2, X, RotateCcw, BarChart3, History, Home, AlertCircle } from "lucide-react"
+import { Upload, Camera, Loader2, X, RotateCcw, BarChart3, History, Home, AlertCircle, Trash2 } from "lucide-react"
 import Image from "next/image"
-import { saveMealData, type MealRecord } from "@/lib/meal-storage"
+import { saveMealData, deleteMealRecord, type MealRecord } from "@/lib/meal-storage"
 import { getTodayMeals, getAllMealsGroupedByDate } from "@/lib/meal-storage"
 
 interface NutritionData {
@@ -505,7 +504,7 @@ export default function MealAnalyzer() {
 function TodaySummary({ onTabChange }: { onTabChange: (tab: TabType) => void }) {
   const [todayData, setTodayData] = useState<MealRecord[]>([])
 
-  React.useEffect(() => {
+  useEffect(() => {
     // コンポーネントがマウントされた時とタブが切り替わった時にデータを再読み込み
     const loadTodayData = () => {
       setTodayData(getTodayMeals())
@@ -528,6 +527,13 @@ function TodaySummary({ onTabChange }: { onTabChange: (tab: TabType) => void }) 
       window.removeEventListener("mealDataUpdated", handleStorageChange)
     }
   }, [])
+
+  const handleDeleteMeal = (id: string) => {
+    deleteMealRecord(id)
+    setTodayData(getTodayMeals())
+    // カスタムイベントを発火してデータ更新を通知
+    window.dispatchEvent(new CustomEvent("mealDataUpdated"))
+  }
 
   const totalCalories = todayData.reduce((sum, meal) => sum + meal.calories, 0)
   const totalCarbs = todayData.reduce((sum, meal) => sum + meal.carbs, 0)
@@ -616,11 +622,25 @@ function TodaySummary({ onTabChange }: { onTabChange: (tab: TabType) => void }) 
                   <div key={meal.id} className="bg-gray-50 p-3 rounded-lg">
                     <div className="flex justify-between items-start mb-2">
                       <div className="font-medium">{meal.name}</div>
-                      <div className="text-sm text-gray-600">
-                        {new Date(meal.timestamp).toLocaleTimeString("ja-JP", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                      <div className="flex items-center gap-2">
+                        <div className="text-sm text-gray-600">
+                          {new Date(meal.timestamp).toLocaleTimeString("ja-JP", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => {
+                            if (window.confirm(`「${meal.name}」の記録を削除しますか？`)) {
+                              handleDeleteMeal(meal.id)
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                     <div className="grid grid-cols-4 gap-2 text-sm">
@@ -683,7 +703,7 @@ function TodaySummary({ onTabChange }: { onTabChange: (tab: TabType) => void }) 
 function HistoryView({ onTabChange }: { onTabChange: (tab: TabType) => void }) {
   const [historyData, setHistoryData] = useState<{ [date: string]: MealRecord[] }>({})
 
-  React.useEffect(() => {
+  useEffect(() => {
     // コンポーネントがマウントされた時とタブが切り替わった時にデータを再読み込み
     const loadHistoryData = () => {
       setHistoryData(getAllMealsGroupedByDate())
@@ -706,6 +726,13 @@ function HistoryView({ onTabChange }: { onTabChange: (tab: TabType) => void }) {
       window.removeEventListener("mealDataUpdated", handleStorageChange)
     }
   }, [])
+
+  const handleDeleteMeal = (id: string) => {
+    deleteMealRecord(id)
+    setHistoryData(getAllMealsGroupedByDate())
+    // カスタムイベントを発火してデータ更新を通知
+    window.dispatchEvent(new CustomEvent("mealDataUpdated"))
+  }
 
   const dates = Object.keys(historyData).sort().reverse()
 
@@ -768,11 +795,25 @@ function HistoryView({ onTabChange }: { onTabChange: (tab: TabType) => void }) {
                       <div key={meal.id} className="bg-white p-3 rounded border">
                         <div className="flex justify-between items-start mb-2">
                           <div className="font-medium text-sm">{meal.name}</div>
-                          <div className="text-xs text-gray-600">
-                            {new Date(meal.timestamp).toLocaleTimeString("ja-JP", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                          <div className="flex items-center gap-2">
+                            <div className="text-xs text-gray-600">
+                              {new Date(meal.timestamp).toLocaleTimeString("ja-JP", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              onClick={() => {
+                                if (window.confirm(`「${meal.name}」の記録を削除しますか？`)) {
+                                  handleDeleteMeal(meal.id)
+                                }
+                              }}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </div>
                         <div className="grid grid-cols-4 gap-2 text-xs">
