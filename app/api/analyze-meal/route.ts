@@ -1,5 +1,5 @@
 import { generateObject } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
+import { createOpenAI } from "@ai-sdk/openai"
 import { z } from "zod"
 
 const nutritionSchema = z.object({
@@ -18,16 +18,16 @@ export async function POST(request: Request) {
     console.log("Platform:", process.env.VERCEL ? "Vercel" : "Local")
 
     // 環境変数の確認
-    const apiKey = process.env.ANTHROPIC_API_KEY
+    const apiKey = process.env.V0_API_KEY
 
     console.log("Environment variables check:")
-    console.log("ANTHROPIC_API_KEY exists:", !!process.env.ANTHROPIC_API_KEY)
+    console.log("V0_API_KEY exists:", !!process.env.V0_API_KEY)
 
     if (!apiKey) {
       console.error("No API key found in environment variables")
 
       const errorMessage = process.env.VERCEL
-        ? "APIキーがVercelの環境変数に設定されていません。Vercelダッシュボードで ANTHROPIC_API_KEY を設定してください。"
+        ? "APIキーがVercelの環境変数に設定されていません。Vercelダッシュボードで V0_API_KEY を設定してください。"
         : "APIキーが設定されていません。.env.localファイルを確認してください。"
 
       return Response.json(
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
           debug:
             process.env.NODE_ENV === "development"
               ? {
-                  hasAnthropicKey: !!process.env.ANTHROPIC_API_KEY,
+                  hasV0Key: !!process.env.V0_API_KEY,
                   nodeEnv: process.env.NODE_ENV,
                   platform: process.env.VERCEL ? "Vercel" : "Local",
                 }
@@ -68,8 +68,14 @@ export async function POST(request: Request) {
 
     console.log("Starting AI analysis...")
 
+    // v0 APIクライアントを作成
+    const v0 = createOpenAI({
+      apiKey: apiKey,
+      baseURL: "https://api.v0.dev/v1",
+    })
+
     const result = await generateObject({
-      model: anthropic("claude-3-5-sonnet-20241022"),
+      model: v0("gpt-4o"),
       messages: [
         {
           role: "user",
@@ -99,7 +105,7 @@ export async function POST(request: Request) {
       console.error("Error message:", error.message)
       console.error("Error stack:", error.stack)
 
-      // Anthropic API特有のエラーをチェック
+      // v0 API特有のエラーをチェック
       if (error.message.includes("401") || error.message.includes("authentication")) {
         return Response.json(
           {
